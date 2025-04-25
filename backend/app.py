@@ -13,13 +13,15 @@ from PIL import Image
 from pydantic import BaseModel
 import uuid
 import re
-from pymongo import MongoClient
 from datetime import datetime
 import logging
 from dotenv import load_dotenv
+import psycopg2
+from psycopg2.extras import RealDictCursor
 
-# Load environment variables
 load_dotenv()
+
+print("ENV DATABASE_URL:", os.getenv("DATABASE_URL"))
 
 app = FastAPI()
 
@@ -27,20 +29,48 @@ app = FastAPI()
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# MongoDB Configuration
-try:
-    MONGO_URI = os.getenv("MONGO_URI")
-    DB_NAME = os.getenv("MONGO_DB_NAME")
-    COLLECTION_NAME = os.getenv("MONGO_COLLECTION_NAME")
+# PostgreSQL Configuration
+def get_db_connection():
+    try:
+        conn = psycopg2.connect(
+            os.getenv("DATABASE_URL"),
+            cursor_factory=RealDictCursor
+        )
+        logger.info("Successfully connected to PostgreSQL")
+        return conn
+    except Exception as e:
+        logger.error(f"Could not connect to PostgreSQL: {e}")
+        raise RuntimeError("Database connection failed")
 
-    client = MongoClient(MONGO_URI, serverSelectionTimeoutMS=5000)
-    client.server_info()
-    db = client[DB_NAME]
-    collection = db[COLLECTION_NAME]
-    logger.info("Successfully connected to MongoDB")
-except Exception as e:
-    logger.error(f"Could not connect to MongoDB: {e}")
-    raise RuntimeError("Database connection failed")
+# Initialize database table
+def init_db():
+    conn = None  # <-- Ensure conn is always defined
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS prescriptions (
+                id SERIAL PRIMARY KEY,
+                user_email TEXT,
+                original_text TEXT,
+                processed_text TEXT,
+                cleaned_text TEXT,
+                image_id TEXT,
+                message TEXT,
+                timestamp TIMESTAMP,
+                filename TEXT
+            )
+        """)
+        conn.commit()
+        logger.info("Database table initialized successfully")
+    except Exception as e:
+        logger.error(f"Error initializing database: {e}")
+    finally:
+        if conn:
+            conn.close()
+
+# Initialize the database on startup
+init_db()
 
 # CORS settings
 app.add_middleware(
@@ -174,7 +204,7 @@ async def extract_text_from_pdf(
                 "processed": processed_img_path
             }
 
-            # Prepare data for MongoDB
+            # Prepare data for PostgreSQL
             data = {
                 "user_email": user_email,
                 "original_text": original_text,
@@ -186,11 +216,24 @@ async def extract_text_from_pdf(
                 "filename": file.filename
             }
 
-            # Save to MongoDB
-            logger.info("Saving to MongoDB...")
-            collection.insert_one(data)
-            logger.info("Successfully saved to MongoDB")
-
+            # Save to PostgreSQL
+            logger.info("Saving to PostgreSQL...")
+            conn = get_db_connection()
+            cur = conn.cursor()
+            
+            cur.execute("""
+                INSERT INTO prescriptions (
+                    user_email, original_text, processed_text, 
+                    cleaned_text, image_id, message, timestamp, filename
+                ) VALUES (
+                    %(user_email)s, %(original_text)s, %(processed_text)s,
+                    %(cleaned_text)s, %(image_id)s, %(message)s, %(timestamp)s, %(filename)s
+                )
+            """, data)
+            
+            conn.commit()
+            logger.info("Successfully saved to PostgreSQL")
+            
             return {
                 "original_text": original_text,
                 "processed_text": processed_text,
@@ -202,6 +245,9 @@ async def extract_text_from_pdf(
     except Exception as e:
         logger.error(f"Error processing file: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Processing error: {str(e)}")
+    finally:
+        if 'conn' in locals():
+            conn.close()
 
 @app.get("/user-prescriptions")
 async def get_user_prescriptions(user_email: str):
@@ -209,21 +255,27 @@ async def get_user_prescriptions(user_email: str):
     try:
         logger.info(f"Fetching prescriptions for user: {user_email}")
         
-        # Query MongoDB for prescriptions matching the user_email
-        prescriptions = list(collection.find(
-            {"user_email": user_email},
-            {"_id": 0}  # Exclude MongoDB's _id field from results
-        ))
+        conn = get_db_connection()
+        cur = conn.cursor()
+        
+        cur.execute("""
+            SELECT 
+                id, user_email, original_text, processed_text,
+                cleaned_text, image_id, message, 
+                to_char(timestamp, 'YYYY-MM-DD HH24:MI:SS') as timestamp,
+                filename
+            FROM prescriptions 
+            WHERE user_email = %s
+            ORDER BY timestamp DESC
+        """, (user_email,))
+        
+        prescriptions = cur.fetchall()
         
         if not prescriptions:
             return JSONResponse(
                 status_code=404,
                 content={"message": "No prescriptions found for this user"}
             )
-        
-        # Convert datetime to string before sending as response
-        for prescription in prescriptions:
-            prescription["timestamp"] = prescription["timestamp"].strftime("%Y-%m-%d %H:%M:%S")
         
         return JSONResponse(
             status_code=200,
@@ -239,6 +291,9 @@ async def get_user_prescriptions(user_email: str):
             status_code=500,
             detail=f"Error fetching prescriptions: {str(e)}"
         )
+    finally:
+        if 'conn' in locals():
+            conn.close()
     
 @app.get("/view-image/{image_id}/{image_type}")
 async def view_image(image_id: str, image_type: str):

@@ -1,75 +1,26 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Clock, Check, Bell, BellOff, Calendar, AlertCircle, Info } from "lucide-react"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 
-// Mock data for medications
-const mockMedications = [
-  {
-    id: 1,
-    name: "Amoxicillin",
-    dosage: "500mg",
-    frequency: "3 times daily",
-    timing: "After meals",
-    schedule: [
-      { time: "8:00 AM", label: "Morning", taken: true },
-      { time: "2:00 PM", label: "Afternoon", taken: false },
-      { time: "8:00 PM", label: "Evening", taken: false },
-    ],
-    startDate: "2025-04-01",
-    endDate: "2025-04-07",
-    remainingDays: 5,
-    remindersEnabled: true,
-    instructions: "Take with a full glass of water",
-    color: "teal",
-  },
-  {
-    id: 2,
-    name: "Lisinopril",
-    dosage: "10mg",
-    frequency: "Once daily",
-    timing: "Morning",
-    schedule: [{ time: "9:00 AM", label: "Morning", taken: true }],
-    startDate: "2025-04-01",
-    endDate: "2025-04-25",
-    remainingDays: 25,
-    remindersEnabled: true,
-    instructions: "Take on an empty stomach",
-    color: "blue",
-  },
-  {
-    id: 3,
-    name: "Ibuprofen",
-    dosage: "400mg",
-    frequency: "Every 6 hours as needed",
-    timing: "With food",
-    schedule: [{ time: "As needed", label: "As needed", taken: null }],
-    startDate: "2025-04-01",
-    endDate: "2025-04-05",
-    remainingDays: 3,
-    remindersEnabled: false,
-    instructions: "Do not take on empty stomach",
-    color: "amber",
-  },
-  {
-    id: 4,
-    name: "Loratadine",
-    dosage: "10mg",
-    frequency: "Once daily",
-    timing: "Morning",
-    schedule: [{ time: "10:00 AM", label: "Morning", taken: false }],
-    startDate: "2025-04-01",
-    endDate: "2025-04-14",
-    remainingDays: 14,
-    remindersEnabled: true,
-    instructions: "May cause drowsiness",
-    color: "purple",
-  },
-]
+// Define the structure for a medication
+interface Medication {
+  id: number
+  name: string
+  dosage: string
+  frequency: string
+  schedule: { time: string; label: string; taken: boolean | null }[]
+  startDate: string
+  endDate: string
+  remainingDays: number
+  remindersEnabled: boolean
+  instructions: string
+  color: string
+}
 
 // Color mapping for medication cards
 const colorMap: Record<string, { light: string; border: string; dark: string }> = {
@@ -77,11 +28,80 @@ const colorMap: Record<string, { light: string; border: string; dark: string }> 
   blue: { light: "bg-blue-50", border: "border-blue-200", dark: "bg-blue-500" },
   amber: { light: "bg-amber-50", border: "border-amber-200", dark: "bg-amber-500" },
   purple: { light: "bg-purple-50", border: "border-purple-200", dark: "bg-purple-500" },
-  pink: { light: "bg-pink-50", border: "border-pink-200", dark: "bg-pink-500" },
 }
 
 export function MedicationSchedule() {
-  const [medications, setMedications] = useState(mockMedications)
+  const [medications, setMedications] = useState<Medication[]>([])
+
+  // Function to fetch medication data
+  useEffect(() => {
+    const fetchMedications = async () => {
+      try {
+        const response = await fetch('http://localhost:8000/user-prescriptions?user_email=abhaypawar0817%40gmail.com')
+        const data = await response.json()
+
+        // Extract and parse data dynamically from cleaned_text
+        const prescriptions = data.prescriptions.map((prescription: any, index: number) => {
+          const cleanedText = prescription.cleaned_text
+
+          // Regular expressions to extract key information dynamically from the cleaned_text
+          const nameRegex = /([A-Za-z\s]+)\s*-\s*\d+\s?mg/  // Extract medication name
+          const dosageRegex = /(\d+\s?mg|\d+\s?ml)/  // Extract dosage like "500mg"
+          const frequencyRegex = /(once daily|twice daily|every \d+ hours|morning|afternoon|evening)/i // Extract frequency
+          const instructionRegex = /instructions?:\s?([A-Za-z\s.,]+)/i  // Extract instructions
+
+          // Extract medication name using regex
+          const nameMatch = cleanedText.match(nameRegex)
+          const name = nameMatch ? nameMatch[1].trim() : "Unknown Medication"
+
+          // Extract dosage from the text
+          const dosageMatch = cleanedText.match(dosageRegex)
+          const dosage = dosageMatch ? dosageMatch[0] : "Unknown Dosage"
+
+          // Extract frequency from the text
+          const frequencyMatch = cleanedText.match(frequencyRegex)
+          const frequency = frequencyMatch ? frequencyMatch[0] : "Unknown Frequency"
+
+          // Extract special instructions
+          const instructionMatch = cleanedText.match(instructionRegex)
+          const instructions = instructionMatch ? instructionMatch[1].trim() : "No special instructions"
+
+          // Extract the schedule (assuming we have times like "Morning", "Afternoon", "Evening" in cleaned text)
+          const schedule = [
+            { time: "8:00 AM", label: "Morning", taken: null },
+            { time: "2:00 PM", label: "Afternoon", taken: null },
+            { time: "8:00 PM", label: "Evening", taken: null },
+          ]
+
+          // Dummy dates and remaining days (can be extracted from cleaned_text if available)
+          const startDate = "2025-04-01"  // Placeholder value
+          const endDate = "2025-04-07"    // Placeholder value
+          const remainingDays = 5         // Placeholder value
+
+          // Return the medication object dynamically
+          return {
+            id: index + 1,
+            name: name,
+            dosage: dosage,
+            frequency: frequency,
+            schedule: schedule,
+            startDate: startDate,
+            endDate: endDate,
+            remainingDays: remainingDays,
+            remindersEnabled: true,
+            instructions: instructions,
+            color: "teal",  // Dynamically determine color if necessary
+          }
+        })
+
+        setMedications(prescriptions)
+      } catch (error) {
+        console.error("Error fetching medications:", error)
+      }
+    }
+
+    fetchMedications()
+  }, [])
 
   const toggleReminder = (id: number) => {
     setMedications(
@@ -223,4 +243,3 @@ export function MedicationSchedule() {
     </div>
   )
 }
-

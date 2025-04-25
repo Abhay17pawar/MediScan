@@ -10,7 +10,7 @@ import { PrescriptionUploader } from "./PrescriptionUploader";
 import Home from "@/components/chat-bot";
 
 export default function DashboardPage() {
-  const [activeTab, setActiveTab] = useState("schedule");
+  const [activeTab, setActiveTab] = useState("upload");
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -43,14 +43,14 @@ export default function DashboardPage() {
           {/* Sidebar */}
           <aside className="md:w-64">
             <nav className="space-y-2">
-              <Button
+              {/* <Button
                 variant={activeTab === "schedule" ? "default" : "ghost"}
                 className="w-full justify-start"
                 onClick={() => setActiveTab("schedule")}
               >
                 <Calendar className="mr-2 h-5 w-5" />
                 Medication Schedule
-              </Button>
+              </Button> */}
               <Button
                 variant={activeTab === "upload" ? "default" : "ghost"}
                 className="w-full justify-start"
@@ -69,10 +69,8 @@ export default function DashboardPage() {
               </Button>
             </nav>
           </aside>
-
-          {/* Main Content Area */}
           <main className="flex-1">
-            {activeTab === "schedule" && (
+            {/* {activeTab === "schedule" && (
               <Card>
                 <CardHeader>
                   <CardTitle>Your Medication Schedule</CardTitle>
@@ -82,7 +80,7 @@ export default function DashboardPage() {
                   <MedicationSchedule />
                 </CardContent>
               </Card>
-            )}
+            )} */}
 
             {activeTab === "upload" && (
               <Card>

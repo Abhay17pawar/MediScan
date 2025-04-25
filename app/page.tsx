@@ -28,12 +28,6 @@ export default function LandingPage() {
             >
               How It Works
             </Link>
-            <Link
-              href="#testimonials"
-              className="text-sm font-medium text-gray-600 hover:text-teal-600 transition-colors"
-            >
-              Testimonials
-            </Link>
           </nav>
           <div className="flex items-center gap-4">
             <Link href="/login">
@@ -61,8 +55,8 @@ export default function LandingPage() {
                 Manage Your Medications with Ease
               </h1>
               <p className="text-lg md:text-xl text-gray-600 leading-relaxed">
-                Simply scan your prescription, and we'll organize your medication schedule. Never miss a dose with
-                MediScan's intelligent reminders and AI-powered assistant.
+                Simply scan your prescription, and we'll organize your medication. Never miss a dose with
+                MediScan's intelligent AI-powered assistant.
               </p>
               <div className="flex flex-col sm:flex-row gap-4 pt-4">
                 <Link href="/login?register=true">
@@ -183,10 +177,10 @@ export default function LandingPage() {
               },
               {
                 icon: <Clock className="h-6 w-6 text-teal-600" />,
-                title: "Smart Medication Schedule",
+                title: "Get accurate results",
                 description:
-                  "Get a personalized medication schedule with timely reminders to ensure you never miss a dose.",
-              },
+                  "Receive accurate medication results based on your prescription.",
+              },              
               {
                 icon: <MessageSquare className="h-6 w-6 text-teal-600" />,
                 title: "AI Medical Assistant",
@@ -239,8 +233,8 @@ export default function LandingPage() {
               },
               {
                 step: 3,
-                title: "Access Your Schedule",
-                description: "View your personalized medication schedule and set up reminders for each dose.",
+                title: "Get Accurate Details",
+                description: "View your personalized medication schedule.",
               },
             ].map((step, i) => (
               <div key={i} className="flex flex-col items-center text-center group">
@@ -250,65 +244,6 @@ export default function LandingPage() {
                 <h3 className="text-xl font-bold mb-3 group-hover:text-teal-700 transition-colors">{step.title}</h3>
                 <p className="text-gray-600 max-w-xs">{step.description}</p>
               </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Testimonials */}
-      <section id="testimonials" className="py-20">
-        <div className="container">
-          <div className="text-center max-w-2xl mx-auto mb-16">
-            <Badge className="bg-teal-100 text-teal-800 hover:bg-teal-200 mb-4">Testimonials</Badge>
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">What Our Users Say</h2>
-            <p className="text-gray-600">
-              Don't just take our word for it. Here's what our users have to say about MediScan.
-            </p>
-          </div>
-
-          <div className="grid md:grid-cols-2 gap-8">
-            {[
-              {
-                quote:
-                  "MediScan has completely transformed how I manage my medications. The OCR feature is incredibly accurate, and the reminders ensure I never miss a dose.",
-                name: "Sarah Johnson",
-                role: "MediScan User",
-                initial: "SJ",
-              },
-              {
-                quote:
-                  "As someone who takes multiple medications, keeping track was always a challenge. MediScan's AI assistant has been incredibly helpful in answering my questions about potential interactions.",
-                name: "Michael Chen",
-                role: "MediScan User",
-                initial: "MC",
-              },
-            ].map((testimonial, i) => (
-              <Card key={i} className="overflow-hidden border-teal-100/60 hover:shadow-md transition-all">
-                <CardContent className="p-8">
-                  <div className="flex mb-6">
-                    {[...Array(5)].map((_, i) => (
-                      <svg
-                        key={i}
-                        className="h-5 w-5 text-yellow-400 fill-current"
-                        xmlns="http://www.w3.org/2000/svg"
-                        viewBox="0 0 24 24"
-                      >
-                        <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" />
-                      </svg>
-                    ))}
-                  </div>
-                  <p className="italic mb-6 text-gray-700">"{testimonial.quote}"</p>
-                  <div className="flex items-center gap-4">
-                    <div className="h-12 w-12 rounded-full bg-teal-200 flex items-center justify-center text-teal-700 font-medium">
-                      {testimonial.initial}
-                    </div>
-                    <div>
-                      <p className="font-bold">{testimonial.name}</p>
-                      <p className="text-sm text-gray-600">{testimonial.role}</p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
             ))}
           </div>
         </div>

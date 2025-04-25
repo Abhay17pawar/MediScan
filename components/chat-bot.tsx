@@ -39,7 +39,8 @@ export default function MedicalChat() {
   async function runChat(prompt: string) {
     let finalPrompt = prompt;
     let isPrescriptionQuery = false;
-
+    let isMedicationAdvice = false;
+  
     // Check for prescription query
     if (/my (prescription|medication|medicine|rx)/i.test(prompt)) {
       isPrescriptionQuery = true;
@@ -51,34 +52,68 @@ export default function MedicalChat() {
           );
           const data = await res.json();
           if (data?.prescriptions?.[0]?.cleaned_text) {
-            finalPrompt = `The user is asking about their prescription. Here are the details:\n${data.prescriptions[0].cleaned_text}\n\nProvide a concise, beautifully formatted response with: 
-            - A green prescription card-style presentation
-            - Key medications in bold
-            - Dosage in italics
-            - Dates in small text
-            - No extra explanations unless asked`;
+            // Check if user is asking for advice on following prescription
+            if (/how (to|should I) (take|follow|use)/i.test(prompt) || 
+                /advice (on|for) (taking|following)/i.test(prompt)) {
+              isMedicationAdvice = true;
+              finalPrompt = `The patient is asking for advice on properly following their prescription. 
+              Here are their prescription details:
+              ${data.prescriptions[0].cleaned_text}
+              
+              Please provide detailed, personalized advice including:
+              1. Best times to take each medication
+              2. Food/drink interactions to avoid
+              3. Common side effects to watch for
+              4. Tips for remembering doses
+              5. What to do if a dose is missed
+              6. Storage recommendations
+              7. Signs that require medical attention`;
+            } else {
+              finalPrompt = `The patient is requesting their prescription details: 
+              ${data.prescriptions[0].cleaned_text}
+              
+              Format as a professional prescription card with:
+              1. Clear medication table
+              2. Highlighted warnings
+              3. Provider information
+              4. Refill details`;
+            }
           }
         } catch (error) {
           console.error("Prescription fetch error:", error);
         }
       }
     } else {
-      finalPrompt = `Respond concisely in markdown format to: ${prompt}`;
+      finalPrompt = `As a medical professional, respond to: ${prompt}\n\nInclude:
+      - Clear, accurate information
+      - Appropriate warnings
+      - When to consult a doctor`;
     }
-
+  
     try {
       const completion = await openai.chat.completions.create({
-        model: "google/gemini-pro",
+        model: "openai/gpt-3.5-turbo",
         messages: [
           {
             role: "system",
-            content: isPrescriptionQuery 
-              ? `Format prescription information as a beautiful green card with:
-                 - **Medication Name** in bold
-                 - *Dosage* in italics
-                 - Dates in small text
-                 - No extra text unless asked`
-              : "Provide concise, professional medical information in markdown format"
+            content: isMedicationAdvice 
+              ? `You are a pharmacist providing personalized medication advice. Offer:
+                 1. Specific timing instructions
+                 2. Interaction warnings
+                 3. Side effect monitoring
+                 4. Practical adherence tips
+                 5. Clear emergency guidance
+                 6. Professional but compassionate tone`
+              : isPrescriptionQuery
+                ? `Format prescription information professionally with:
+                   1. Well-organized medication table
+                   2. Highlighted important information
+                   3. Complete provider details
+                   4. Clean, readable layout`
+                : `Provide general medical information with:
+                   1. Conservative recommendations
+                   2. Clear disclaimers
+                   3. When to seek help`
           },
           {
             role: "user",
@@ -86,15 +121,35 @@ export default function MedicalChat() {
           }
         ],
       });
-
+  
+      const response = completion.choices[0]?.message?.content;
+      
+      // Enhanced formatting based on response type
+      let formattedResponse = response || "I couldn't generate a response.";
+      if (isPrescriptionQuery) {
+        formattedResponse = formattedResponse
+          .replace(/PRESCRIPTION/g, '<div class="text-center font-bold text-lg mb-2 text-green-700">PRESCRIPTION</div>')
+          .replace(/\*\*(.*?)\*\*/g, '<strong class="text-blue-600">$1</strong>')
+          .replace(/\*(.*?)\*/g, '<em class="text-gray-600">$1</em>')
+          .replace(/WARNING:/g, '<div class="bg-red-50 border-l-4 border-red-500 p-2 my-2"><strong class="text-red-600">WARNING:</strong>')
+          .replace(/\n/g, '<br/>');
+      }
+      if (isMedicationAdvice) {
+        formattedResponse = formattedResponse
+          .replace(/ADVICE/g, '<div class="text-center font-bold text-lg mb-2 text-purple-700">MEDICATION GUIDANCE</div>')
+          .replace(/Tip/g, '<span class="font-medium text-blue-600">Tip</span>')
+          .replace(/Important:/g, '<div class="bg-yellow-50 border-l-4 border-yellow-500 p-2 my-2"><strong class="text-yellow-600">Important:</strong>')
+          .replace(/\n/g, '<br/>');
+      }
+  
       return {
-        content: completion.choices[0]?.message?.content || "I couldn't generate a response.",
+        content: formattedResponse,
         isPrescription: isPrescriptionQuery
       };
     } catch (error) {
       console.error("API Error:", error);
       return {
-        content: "I'm having trouble responding. Please try again later.",
+        content: "Our medical assistant is currently unavailable. For medication questions, please contact your pharmacist.",
         isPrescription: false
       };
     }
