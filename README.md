@@ -34,6 +34,8 @@ Upcoming features include smart reminders for timely medication intake.
 
 ![landingPage](https://github.com/Abhay17pawar/MediScan/blob/main/public/Screenshot%202025-04-26%20013143.png)
 
+![landingPage](https://github.com/Abhay17pawar/MediScan/blob/main/public/Screenshot%202025-04-26%20015030.png)
+
 
 ## Installation
 
