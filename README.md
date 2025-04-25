@@ -26,6 +26,15 @@ Upcoming features include smart reminders for timely medication intake.
 
 **Pytesseract (OCR)**
 
+## Screenshots
+
+![landingPage](https://github.com/Abhay17pawar/MediScan/blob/main/public/landingPage.png)
+
+![landingPage](https://github.com/Abhay17pawar/MediScan/blob/main/public/Screenshot%202025-04-26%20012923.png)
+
+![landingPage](https://github.com/Abhay17pawar/MediScan/blob/main/public/Screenshot%202025-04-26%20013143.png)
+
+
 ## Installation
 
 ## Frontend : 
